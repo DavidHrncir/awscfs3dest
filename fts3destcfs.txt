@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Build out the AWS objects needed for a Fivetran S3 destination.
+Parameters:
+  ExternalID:
+    Description: >-
+      Defines the FT External ID associated with the account/destination used as a part of
+      the bucket name
+    Type: String
+    Default: '?_?'
+  Region:
+    Description: >-
+      Defines the AWS region where the cloud infrastructure will be procured.
+    Type: String
+    Default: us-east-1
+Resources:
+  S3DestRole:
+    Type: 'AWS::IAM::Role'
+    DependsOn: S3DestBucket
+    Properties:
+      RoleName: !Join ['-', ['ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bktrole']]
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: arn:aws:iam::834469178297:root
+          Action: sts:AssumeRole
+          Condition:
+            StringEquals:
+              sts:ExternalId: 
+                - !Ref ExternalID
+      Path: /
+      Policies:
+        - PolicyName: !Join ['-', ['ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bktpolicy']]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:DeleteObjectTagging
+                  - s3:ReplicateObject
+                  - s3:PutObject
+                  - s3:GetObjectAcl
+                  - s3:GetObject
+                  - s3:DeleteObjectVersion
+                  - s3:ListBucket
+                  - s3:PutObjectTagging
+                  - s3:DeleteObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !Join ['-', ['arn:aws:s3:::ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bkt/datalake/*']]
+                  - !Join ['-', ['arn:aws:s3:::ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bkt']]
+        - PolicyName: !Join ['-', ['ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'glupolicy']] 
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:UpdateDatabase
+                  - glue:DeleteDatabase
+                  - glue:CreateTable
+                  - glue:GetTables
+                  - glue:CreateDatabase
+                  - glue:UpdateTable
+                  - glue:BatchDeleteTable
+                  - glue:DeleteTable
+                  - glue:GetDatabases
+                  - glue:GetTable
+                Resource:
+                  - !Join [':', ['arn:aws:glue', !Ref Region, !Ref AWS::AccountId, '*' ]]
+  S3DestBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Join ['-', ['ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bkt']]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+Outputs:
+  BucketName:
+    Description: The bucket name
+    Value: !Ref S3DestBucket
+  RoleArn:
+    Description: The ARN of the IAM role
+    Value: !GetAtt [S3DestRole, Arn]
+  AWSRegion:
+    Description: The region where the objects are created
+    Value: !Sub ${AWS::Region}
