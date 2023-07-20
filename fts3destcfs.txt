@@ -48,7 +48,7 @@ Resources:
                   - s3:DeleteObject
                   - s3:PutObjectAcl
                 Resource:
-                  - !Join ['-', ['arn:aws:s3:::ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bkt/datalake/*']]
+                  - !Join ['-', ['arn:aws:s3:::ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bkt/*']]
                   - !Join ['-', ['arn:aws:s3:::ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'bkt']]
         - PolicyName: !Join ['-', ['ft', !Join [ '-', !Split [ '_', !Ref ExternalID ]], 'glupolicy']] 
           PolicyDocument:
